@@ -5,7 +5,7 @@ from sqlalchemy import create_engine
 
 from Dashboard_etiquetas_por_usuario.models import Usuario, Relatorio
 
-class ParserPadraoXML():
+class ParserAtacadaoXML():
 
     def obter_matricula(self):
         return self._raiz.find("notificacao").find("produto").get("usuario")
@@ -26,37 +26,39 @@ class ParserPadraoXML():
     def __init__(self, session, conteudo_arquivo:list, nome_arquivo:str) -> None:
         self._session = session
         self._conteudo_arquivo = conteudo_arquivo
-        
-        self.carregar_arquivo()
-        
-        # Obtém os dados do relatório
-        
-        matricula = self.obter_matricula()
-        tipo = self.obter_tipo()
-        data = self.obter_data()
-        quantidade = self.obter_quantidade()
-        cod_produto = self.obter_cod_produto()
-        
-        # gera um objeto para uso do sqlalchemy
-        self._relatorio_final = Relatorio(
-            matricula = matricula,
-            tipo = tipo,
-            data = data,
-            quantidade = quantidade,
-            nome_arquivo=nome_arquivo,
-            cod_produto=cod_produto
-        )
-        
-        # grava no banco usando a sessão informada
-        self.gravar_relatorio()
-        
-    
+        resultado = self._session.query(Relatorio).filter(Relatorio.nome_arquivo == nome_arquivo).first()
+        if resultado:
+            print(f"Relatório de nome {nome_arquivo} já existe no banco, ignorando")
+        else:
+            self.carregar_arquivo()
+            # Obtém os dados do relatório
+            tipo = self.obter_tipo()
+            if tipo == "etiqueta" or tipo == "papeleta":
+                matricula = self.obter_matricula()
+                data = self.obter_data()
+                quantidade = self.obter_quantidade()
+                cod_produto = self.obter_cod_produto()
+                
+                # gera um objeto para uso do sqlalchemy
+                self._relatorio_final = Relatorio(
+                    matricula = matricula,
+                    tipo = tipo,
+                    data = data,
+                    quantidade = quantidade,
+                    nome_arquivo=nome_arquivo,
+                    cod_produto=cod_produto
+                )
+                
+                # grava no banco usando a sessão informada
+                self.gravar_relatorio()
+            
     def carregar_arquivo(self) -> None:
         self._raiz = ET.fromstring(self._conteudo_arquivo)
 
     def gravar_relatorio(self):
         self._session.add(self._relatorio_final)
-        self._session.commit()
+        # commit por transação desabilitado
+        #self._session.commit()
 
 if __name__ == "__main__":
     engine = create_engine('sqlite:///banco.sqlite3', echo=True)
@@ -65,16 +67,8 @@ if __name__ == "__main__":
     with open("exemplo.xml", "r") as arquivo:
         a = arquivo.readlines()
         conteudo_arquivo = ' '.join(a)
-        p = ParserPadraoXML(session, conteudo_arquivo, "exemplo.xml")
-        """
-        print(p._raiz.get("data_hora"))
-        print(p._raiz.find("notificacao").get("tipo"))
-        print(p._raiz.find("notificacao").find("produto").get("quantidade"))
-        print(p._raiz.find("notificacao").find("produto").get("tipo_etiqueta"))
-        print(p._raiz.find("notificacao").find("produto").get("usuario"))
-        print(p._raiz.find("notificacao").find("produto").get("produto"))
-        #
-        """
+        p = ParserAtacadaoXML(session, conteudo_arquivo, "exemplo.xml")
+        session.commit()
         session.close()
 
         
