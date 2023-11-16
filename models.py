@@ -1,7 +1,7 @@
 from sqlalchemy import create_engine, Column, Integer, String, ForeignKey, DateTime
 from sqlalchemy.orm import declarative_base, relationship
 
-engine = create_engine('sqlite:///banco.sqlite3', echo=True)  # Substitua 'seubanco.db' pelo nome do seu banco de dados SQLite
+
 
 
 Base = declarative_base()
@@ -39,4 +39,5 @@ class Produto(Base):
     relatorios = relationship("Relatorio", back_populates="produto")
 
 if __name__ == "__main__":
+    engine = create_engine('sqlite:///banco.sqlite3')  # Substitua 'seubanco.db' pelo nome do seu banco de dados SQLite
     Base.metadata.create_all(engine)

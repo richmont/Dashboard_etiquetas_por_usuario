@@ -1,6 +1,10 @@
 from typing import Type
 import paramiko
 import logging
+#logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+logging.getLogger("paramiko").setLevel(logging.ERROR)
+
 class ClienteSSH():
     def __init__(self, 
                  servidor: str, 
@@ -46,7 +50,7 @@ class ClienteSSH():
         conteudo_relatorio = list()
         try:
             with self._cliente.open_sftp() as sftp:
-                logging.info(f"Trabalhando com o arquivo {nome_relatorio}")
+                logger.info(f"Trabalhando com o arquivo {nome_relatorio}")
                 with sftp.open(f"{nome_relatorio}",'r') as relatorio: # abre o arquivo via sftp
                     for x in relatorio.readlines(): # armazena cada linha do arquivo aberto em uma lista
                         conteudo_relatorio.append(x.strip("\n"))
@@ -60,18 +64,23 @@ class ClienteSSH():
         Returns:
             str: nome do arquivo do relatório
         """
-        stdin,stdout,stderr=self._cliente.exec_command(f'ls -tr {self._caminho_arquivo} | grep {self._prefixo_arquivo}')
-        logging.error(stderr.readlines())
+        logger.debug(f"ls {self._caminho_arquivo}/{self._prefixo_arquivo}*")
+        stdin,stdout,stderr=self._cliente.exec_command(f"cd {self._caminho_arquivo} && ls {self._prefixo_arquivo}*")
+        if stderr.readlines():
+            logger.error(stderr.readlines())
         """
         Método original retornava apenas a primeira linha
         agora é necessário retornar todas as correspondências
         return str(stdout.readlines()[0].strip("\n")) # retorna o primeiro elemento da lista, elimina quebras de linha
         """
         lista_nomes_relatorio = stdout.readlines()
+        
         # remove caracteres de fim de linha \n usando um lambda na lista
         # aplica o caminho completo do arquivo diretamente no nome
         lista_sem_quebra_linha = list(map(lambda x: x.strip("\n"), lista_nomes_relatorio))
-        return list(map(lambda x: f"{self._caminho_arquivo}/{x}", lista_sem_quebra_linha))
+        lista_final_relatorios = list(map(lambda x: f"{self._caminho_arquivo}/{x}", lista_sem_quebra_linha))
+        logger.debug(f"Quantidade de nomes de relatório detectados: {len(lista_final_relatorios)}")
+        return lista_final_relatorios
 class SSHErros():
     
     class LoginFalhouSSH(Exception):
