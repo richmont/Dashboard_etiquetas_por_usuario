@@ -13,6 +13,9 @@ class Usuario(Base):
     nome:Mapped[str] = mapped_column(String(100))
     
     relatorio:Mapped[List["Relatorio"]] = relationship(back_populates="usuario")
+    
+    def __repr__(self) -> str:
+        return f"Usuário - Matrícula: {self.matricula}, Nome: {self.nome}"
 
 class Relatorio(Base):
     __tablename__ = 'relatorio'
@@ -29,6 +32,9 @@ class Relatorio(Base):
     usuario:Mapped["Usuario"] = relationship(back_populates="relatorio")
     produto:Mapped["Produto"] = relationship(back_populates="relatorio")
 
+    def __repr__(self) -> str:
+        return f"Relatório - Tipo: {self.tipo}, Data: {self.data}, Código de produto: {self.cod_produto}, Matrícula: {self.matricula}"
+        
 class Produto(Base):
     __tablename__ = 'produto'
 
@@ -38,6 +44,8 @@ class Produto(Base):
 
     relatorio:Mapped[List["Relatorio"]] = relationship(back_populates="produto")
     
+    def __repr__(self) -> str:
+        return f"Produto - Código de produto: {self.cod_produto}, Descrição: {self.descricao_produto}"
 
 if __name__ == "__main__":
     engine = create_engine('sqlite:///banco.sqlite3')  # Substitua 'seubanco.db' pelo nome do seu banco de dados SQLite
