@@ -1,8 +1,8 @@
 import os
 import streamlit as st
 from SSH import ClienteSSH
-from parsers import ParserNotice, ParserUsuarios
-from models import Base, Relatorio, Usuario
+from parsers import ParserNotice, ParserUsuarios, ParserProduto
+from models import Base, Relatorio, Usuario, Produto
 import sqlalchemy
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy import create_engine
@@ -63,6 +63,12 @@ def atualizar_operadores(
     p = ParserUsuarios.ParserUsuarios(arquivo)
     Usuario.gravar_banco(session, p.df)
 
+def atualizar_produtos(
+    session:sqlalchemy.orm.session.Session, 
+    csv_produtos:io.StringIO
+):
+    p = ParserProduto.ParserProduto(arquivo)
+    Produto.gravar_banco(session, p.df)
 
 data_inicio = datetime.now()
 """
@@ -81,4 +87,13 @@ with open("usuarios.csv", "r", encoding="cp1252") as arquivo:
         session = Session()
         Base.metadata.create_all(engine)    
         atualizar_operadores(session, arquivo)
+
+with open("produtos.csv", "r", encoding="cp1252") as arquivo:
+    
+    engine = create_engine('sqlite:///banco.sqlite3')
+    Session = sessionmaker(bind=engine)
+    session = Session()
+    Base.metadata.create_all(engine)
+    p = atualizar_produtos(session, arquivo)
+    Produto.gravar_banco(session, p.df)
 """
