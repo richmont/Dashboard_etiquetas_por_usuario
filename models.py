@@ -115,8 +115,8 @@ class Produto(Base):
     __tablename__ = 'produto'
 
     id:Mapped[int] = mapped_column(primary_key = True)
-    cod_produto:Mapped[int] = mapped_column(Integer)
-    descricao_produto:Mapped[str] = mapped_column(String(70), unique=True)
+    cod_produto:Mapped[int] = mapped_column(Integer, unique=True)
+    descricao_produto:Mapped[str] = mapped_column(String(70))
 
     relatorio:Mapped[List["Relatorio"]] = relationship(back_populates="produto")
     
@@ -141,30 +141,21 @@ class Produto(Base):
         if r:
             return r[0]
     
-        def gravar_banco(session:sqlalchemy.orm.session.Session, df:pd.DataFrame):
-            for ind in df.index:
-                matricula = int(df['matricula'][ind])
-                tipo = df['tipo'][ind]
-                data = df['data'][ind]
-                quantidade = int(df['quantidade'][ind])
-                nome_arquivo = df['nome_arquivo'][ind]
-                cod_produto = int(df['cod_produto'][ind])
-
-                if Relatorio.existe(session, nome_arquivo):
-                    logger.info("Relatório %s já existe no banco", nome_arquivo)
-                else:
-                    model_relatorio = Relatorio(
-                        matricula = matricula,
-                        tipo = tipo,
-                        data = data,
-                        quantidade = quantidade,
-                        nome_arquivo = nome_arquivo,
-                        cod_produto = cod_produto
-                    )
-                    session.add(model_relatorio)
-                    logger.info("Gravando relatorio %s no banco", nome_arquivo)
-                    del model_relatorio
-            session.commit()
+    def gravar_banco(session:sqlalchemy.orm.session.Session, df:pd.DataFrame):
+        for ind in df.index:
+            descricao = df['Nome'][ind]
+            cod_produto = int(df['Código'][ind])
+            if Produto.existe(session, cod_produto):
+                logger.info("Produto %s já existe no banco", cod_produto)
+            else:
+                model_produto = Produto(
+                    descricao_produto=descricao,
+                    cod_produto = cod_produto
+                )
+                session.add(model_produto)
+                logger.info("Gravando produto %s no banco", cod_produto)
+                del model_produto
+        session.commit()
     
 if __name__ == "__main__":
     engine = create_engine('sqlite:///banco.sqlite3')  # Substitua 'seubanco.db' pelo nome do seu banco de dados SQLite
