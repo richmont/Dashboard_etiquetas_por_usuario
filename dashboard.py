@@ -1,7 +1,7 @@
 import os
 import streamlit as st
 from SSH import ClienteSSH
-from parsers import ParserAtacadao, ParserUsuarios
+from parsers import ParserNotice, ParserUsuarios
 from models import Base, Relatorio, Usuario
 import sqlalchemy
 from sqlalchemy.orm import sessionmaker
@@ -48,7 +48,7 @@ def atualizar_relatorios(
     for nome_relatorio in lista_nomes_relatorios:
         conteudo_relatorio_lst = c.obter_conteudo_relatorio(nome_relatorio)
         conteudo_relatorio = "".join(conteudo_relatorio_lst)
-        p = ParserAtacadao.ParserAtacadaoXML(sessao, conteudo_relatorio, nome_relatorio)
+        p = ParserNotice.ParserNoticeXML(sessao, conteudo_relatorio, nome_relatorio)
         d = p.interpretar_relatorio()
         if d: # se o relatório possui conteúdo, grava, senão, ignora, já está gravado
             lista_relatorios_dict.append(d)

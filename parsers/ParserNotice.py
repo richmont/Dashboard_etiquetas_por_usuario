@@ -9,7 +9,7 @@ import pandas as pd
 logger = logging.getLogger(__name__)
 
 
-class ParserAtacadaoXML():
+class ParserNoticeXML():
     class exc():
         class ElementoAusente(Exception):
             pass
@@ -19,28 +19,28 @@ class ParserAtacadaoXML():
         if _ is not None:
             return _
         else:
-            raise ParserAtacadaoXML.exc.ElementoAusente("Matricula ausente")
+            raise ParserNoticeXML.exc.ElementoAusente("Matricula ausente")
     
     def obter_formato(self):
         _ = self._raiz.find("notificacao").find("produto").get("tipo_etiqueta")
         if _ is not None:
             return _
         else:
-            raise ParserAtacadaoXML.exc.ElementoAusente("Formato ausente")
+            raise ParserNoticeXML.exc.ElementoAusente("Formato ausente")
     
     def obter_tipo(self):
         _ = self._raiz.find("notificacao").get("tipo")
         if _ is not None:
             return _
         else:
-            raise ParserAtacadaoXML.exc.ElementoAusente("Tipo ausente")
+            raise ParserNoticeXML.exc.ElementoAusente("Tipo ausente")
         
     def obter_quantidade(self):
         _ = self._raiz.find("notificacao").find("produto").get("quantidade")
         if _ is not None:
             return _
         else:
-            raise ParserAtacadaoXML.exc.ElementoAusente("Quantidade ausente")
+            raise ParserNoticeXML.exc.ElementoAusente("Quantidade ausente")
     
     def obter_data(self) -> datetime:
         data_string = self._raiz.get("data_hora")
@@ -48,14 +48,14 @@ class ParserAtacadaoXML():
         if _ is not None:
             return _
         else:
-            raise ParserAtacadaoXML.exc.ElementoAusente("Data ausente")
+            raise ParserNoticeXML.exc.ElementoAusente("Data ausente")
     
     def obter_cod_produto(self) -> int:
         _ = self._raiz.find("notificacao").find("produto").get("sku")
         if _ is not None:
             return _
         else:
-            raise ParserAtacadaoXML.exc.ElementoAusente("Código do produto ausente")
+            raise ParserNoticeXML.exc.ElementoAusente("Código do produto ausente")
             
     
     def interpretar_relatorio(self):
@@ -129,7 +129,7 @@ if __name__ == "__main__":
     with open("exemplo.xml", "r") as arquivo:
         a = arquivo.readlines()
         conteudo_arquivo = ' '.join(a)
-        p = ParserAtacadaoXML(session, conteudo_arquivo, "exemplo.xml")
+        p = ParserNoticeXML(session, conteudo_arquivo, "exemplo.xml")
         dict_relatorio = p.interpretar_relatorio()
         print(dict_relatorio)
         

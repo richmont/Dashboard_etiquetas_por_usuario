@@ -123,16 +123,48 @@ class Produto(Base):
     def __repr__(self) -> str:
         return f"Produto - Código de produto: {self.cod_produto}, Descrição: {self.descricao_produto}"
 
-    @classmethod
     def todos(session:sqlalchemy.orm.session.Session) -> list:
         r = session.execute(select(Produto)).scalars().all()
         return r
     
-    @classmethod
+    def existe(session:sqlalchemy.orm.session.Session, cod_produto:int):
+        tabela_produto = Produto.__table__
+        r = session.execute(select(tabela_produto.c.id).where(tabela_produto.c.cod_produto == cod_produto)).first()
+        if r:
+            return True
+        else:
+            return False
+    
     def produto_por_codigo(session:sqlalchemy.orm.session.Session, cod_produto:int):
-        r = session.execute(select(Produto).where(Produto.cod_produto == cod_produto)).first()
+        tabela_produto = Produto.__table__
+        r = session.execute(select(tabela_produto.c.descricao).where(tabela_produto.c.cod_produto == cod_produto)).first()
         if r:
             return r[0]
+    
+        def gravar_banco(session:sqlalchemy.orm.session.Session, df:pd.DataFrame):
+            for ind in df.index:
+                matricula = int(df['matricula'][ind])
+                tipo = df['tipo'][ind]
+                data = df['data'][ind]
+                quantidade = int(df['quantidade'][ind])
+                nome_arquivo = df['nome_arquivo'][ind]
+                cod_produto = int(df['cod_produto'][ind])
+
+                if Relatorio.existe(session, nome_arquivo):
+                    logger.info("Relatório %s já existe no banco", nome_arquivo)
+                else:
+                    model_relatorio = Relatorio(
+                        matricula = matricula,
+                        tipo = tipo,
+                        data = data,
+                        quantidade = quantidade,
+                        nome_arquivo = nome_arquivo,
+                        cod_produto = cod_produto
+                    )
+                    session.add(model_relatorio)
+                    logger.info("Gravando relatorio %s no banco", nome_arquivo)
+                    del model_relatorio
+            session.commit()
     
 if __name__ == "__main__":
     engine = create_engine('sqlite:///banco.sqlite3')  # Substitua 'seubanco.db' pelo nome do seu banco de dados SQLite
