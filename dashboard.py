@@ -1,14 +1,14 @@
 import os
 import streamlit as st
 from SSH import ClienteSSH
-from parsers.ParserAtacadao import ParserAtacadaoXML
-from models import Base, Relatorio
+from parsers import ParserAtacadao, ParserUsuarios
+from models import Base, Relatorio, Usuario
 import sqlalchemy
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy import create_engine
 from datetime import datetime
 import pandas as pd
-
+import io
 import logging
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
@@ -48,7 +48,7 @@ def atualizar_relatorios(
     for nome_relatorio in lista_nomes_relatorios:
         conteudo_relatorio_lst = c.obter_conteudo_relatorio(nome_relatorio)
         conteudo_relatorio = "".join(conteudo_relatorio_lst)
-        p = ParserAtacadaoXML(sessao, conteudo_relatorio, nome_relatorio)
+        p = ParserAtacadao.ParserAtacadaoXML(sessao, conteudo_relatorio, nome_relatorio)
         d = p.interpretar_relatorio()
         if d: # se o relatório possui conteúdo, grava, senão, ignora, já está gravado
             lista_relatorios_dict.append(d)
@@ -56,7 +56,16 @@ def atualizar_relatorios(
         df = pd.DataFrame(lista_relatorios_dict)
         Relatorio.gravar_banco(session, df)
 
+def atualizar_operadores(
+    session:sqlalchemy.orm.session.Session, 
+    csv_operadores:io.StringIO
+    ):
+    p = ParserUsuarios.ParserUsuarios(arquivo)
+    Usuario.gravar_banco(session, p.df)
+
+
 data_inicio = datetime.now()
+"""
 atualizar_relatorios(
         SRV_IP,
         SRV_RELATORIO_PASTA,
@@ -65,3 +74,11 @@ atualizar_relatorios(
         SSH_PWD,
         session
 )
+
+with open("usuarios.csv", "r", encoding="cp1252") as arquivo:
+        engine = create_engine('sqlite:///banco.sqlite3')
+        Session = sessionmaker(bind=engine)
+        session = Session()
+        Base.metadata.create_all(engine)    
+        atualizar_operadores(session, arquivo)
+"""
