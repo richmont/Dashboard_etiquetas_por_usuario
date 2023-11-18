@@ -20,28 +20,24 @@ class Usuario(Base):
     def __repr__(self) -> str:
         return f"Usuário - Matrícula: {self.matricula}, Nome: {self.nome}"
 
-    @classmethod
     def todos(session:sqlalchemy.orm.session.Session) -> list:
         r = session.execute(select(Usuario)).scalars().all()
         return r
     
-    @classmethod
     def usuario_por_codigo(session:sqlalchemy.orm.session.Session, matricula:int):
         r = session.execute(select(Usuario).where(Usuario.matricula == matricula)).first()
         if r:
             return r[0]
     
-    
-    def existe(session, matricula:int) -> bool:
-        result = session.execute(select(Usuario).where(Usuario.matricula == matricula)).first()
+    def existe(session:sqlalchemy.orm.session.Session, matricula:int) -> bool:
+        tabela_usuarios = Usuario.__table__
+        result = session.execute(select(tabela_usuarios.c.id).where(tabela_usuario.c.matricula == matricula)).first()
         if result:
             return True
         else:
             return False
     
-    
-    def gravar_banco(session, df):
-        
+    def gravar_banco(session:sqlalchemy.orm.session.Session, df:pd.DataFrame):
         for ind in df.index:
             matricula = int(df['Código'][ind])
             nome = df['Nome'][ind]
@@ -80,6 +76,31 @@ class Relatorio(Base):
         tabela_relatorio = Relatorio.__table__
         r = session.execute(select(tabela_relatorio.c)).scalars().all()
         return r
+    
+    def existe(session, nome_arquivo:str) -> bool:
+        tabela_relatorio = Relatorio.__table__
+        result = session.execute(select(tabela_relatorio.c.id).where(tabela_relatorio.c.nome_arquivo == nome_arquivo)).first()
+        if result:
+            return True
+        else:
+            return False
+    
+    def gravar_banco(session:sqlalchemy.orm.session.Session, df:pd.DataFrame):
+        for ind in df.index:
+            matricula = int(df['Código'][ind])
+            nome = df['Nome'][ind]
+
+            if Usuario.existe(session, matricula):
+                logger.info("Usuário %s já existe no banco", nome)
+            else:
+                model_usuario = Usuario(
+                matricula=matricula,
+                nome=nome
+            )
+                session.add(model_usuario)
+                logger.info("Gravando usuario %s no banco", nome)
+                del model_usuario
+        session.commit()
 
     
 class Produto(Base):

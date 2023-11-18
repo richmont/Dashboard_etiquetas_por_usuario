@@ -4,37 +4,64 @@ from sqlalchemy.orm import sessionmaker
 from sqlalchemy import create_engine
 from Dashboard_etiquetas_por_usuario.models import Usuario, Relatorio
 import logging
+import pandas as pd
 #logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
 class ParserAtacadaoXML():
+    class exc():
+        class ElementoAusente(Exception):
+            pass
 
     def obter_matricula(self):
-        return self._raiz.find("notificacao").find("produto").get("usuario")
+        _ = self._raiz.find("notificacao").find("produto").get("usuario")
+        if _ is not None:
+            return _
+        else:
+            raise ParserAtacadaoXML.exc.ElementoAusente("Matricula ausente")
     
     def obter_formato(self):
-        return self._raiz.find("notificacao").find("produto").get("tipo_etiqueta")
+        _ = self._raiz.find("notificacao").find("produto").get("tipo_etiqueta")
+        if _ is not None:
+            return _
+        else:
+            raise ParserAtacadaoXML.exc.ElementoAusente("Formato ausente")
     
     def obter_tipo(self):
-        return self._raiz.find("notificacao").get("tipo")
+        _ = self._raiz.find("notificacao").get("tipo")
+        if _ is not None:
+            return _
+        else:
+            raise ParserAtacadaoXML.exc.ElementoAusente("Tipo ausente")
         
     def obter_quantidade(self):
-        return self._raiz.find("notificacao").find("produto").get("quantidade")
+        _ = self._raiz.find("notificacao").find("produto").get("quantidade")
+        if _ is not None:
+            return _
+        else:
+            raise ParserAtacadaoXML.exc.ElementoAusente("Quantidade ausente")
     
     def obter_data(self) -> datetime:
         data_string = self._raiz.get("data_hora")
-        return datetime.strptime(data_string, "%d/%m/%Y %H:%M:%S")
+        _ = datetime.strptime(data_string, "%d/%m/%Y %H:%M:%S")
+        if _ is not None:
+            return _
+        else:
+            raise ParserAtacadaoXML.exc.ElementoAusente("Data ausente")
     
     def obter_cod_produto(self) -> int:
-        return self._raiz.find("notificacao").find("produto").get("sku")
+        _ = self._raiz.find("notificacao").find("produto").get("sku")
+        if _ is not None:
+            return _
+        else:
+            raise ParserAtacadaoXML.exc.ElementoAusente("Código do produto ausente")
+            
     
-    def __init__(self, session, conteudo_arquivo:list, nome_arquivo:str) -> None:
-        self._session = session
-        self._conteudo_arquivo = conteudo_arquivo
-        resultado = self._session.query(Relatorio).filter(Relatorio.nome_arquivo == nome_arquivo).first()
+    def interpretar_relatorio(self):
+        resultado = Relatorio.existe(self._session, self._nome_arquivo)
         if resultado:
-            logger.info(f"Relatório de nome {nome_arquivo} já existe no banco, ignorando")
+            logger.info(f"Relatório de nome {self._nome_arquivo} já existe no banco, ignorando")
         else:
             self.carregar_arquivo()
             # Obtém os dados do relatório
@@ -46,22 +73,21 @@ class ParserAtacadaoXML():
                 data = self.obter_data()
                 quantidade = self.obter_quantidade()
                 cod_produto = self.obter_cod_produto()
-                
+
                 # gera um objeto para uso do sqlalchemy
                 logger.debug(
-                    f"Relatório tipo {tipo} detectado, pronto para gravar: Matrícula {matricula}, data {data}, nome do arquivo {nome_arquivo}"
+                    f"Relatório tipo {tipo} detectado, pronto para gravar: Matrícula {matricula}, data {data}, nome do arquivo {self._nome_arquivo}"
                     )
-                self._relatorio_final = Relatorio(
-                    matricula = matricula,
-                    tipo = tipo,
-                    data = data,
-                    quantidade = quantidade,
-                    nome_arquivo=nome_arquivo,
-                    cod_produto=cod_produto,
-                )
+                dict_relatorio = {
+                    "matricula": matricula,
+                    "tipo": tipo,
+                    "data": data,
+                    "quantidade":quantidade,
+                    "nome_arquivo": self._nome_arquivo,
+                    "cod_produto":cod_produto
+                }
+                return dict_relatorio
                 
-                # grava no banco usando a sessão informada
-                self.gravar_relatorio()
 
             # caso seja etiqueta, obtém o formato e guarda
             elif tipo == "etiqueta":
@@ -73,29 +99,28 @@ class ParserAtacadaoXML():
                 
                 # gera um objeto para uso do sqlalchemy
                 logger.debug(
-                    f"Relatório tipo {formato} detectado, pronto para gravar: Matrícula {matricula}, data {data}, nome do arquivo {nome_arquivo}"
+                    f"Relatório tipo {formato} detectado, pronto para gravar: Matrícula {matricula}, data {data}, nome do arquivo {self._nome_arquivo}"
                     )
-                self._relatorio_final = Relatorio(
-                    matricula = matricula,
-                    # o tipo obviamente será etiqueta, então armazena se é X ou C no banco
-                    tipo = formato,
-                    data = data,
-                    quantidade = quantidade,
-                    nome_arquivo=nome_arquivo,
-                    cod_produto=cod_produto,
-                )
-                
-                # grava no banco usando a sessão informada
-                self.gravar_relatorio()
+                dict_relatorio = {
+                    "matricula": matricula,
+                    "tipo": formato,
+                    "data": data,
+                    "quantidade":quantidade,
+                    "nome_arquivo": self._nome_arquivo,
+                    "cod_produto":cod_produto
+                }
+                return dict_relatorio
+    
+    def __init__(self, session, conteudo_arquivo:list, nome_arquivo:str) -> None:
+        self._session = session
+        self._conteudo_arquivo = conteudo_arquivo
+        self._nome_arquivo = nome_arquivo
+        
             
     def carregar_arquivo(self) -> None:
         self._raiz = ET.fromstring(self._conteudo_arquivo)
 
-    def gravar_relatorio(self):
-        logger.debug("Gravando relatório no banco")
-        self._session.add(self._relatorio_final)
-        # commit por transação desabilitado
-        #self._session.commit()
+    
 
 if __name__ == "__main__":
     engine = create_engine('sqlite:///banco.sqlite3')
@@ -105,7 +130,9 @@ if __name__ == "__main__":
         a = arquivo.readlines()
         conteudo_arquivo = ' '.join(a)
         p = ParserAtacadaoXML(session, conteudo_arquivo, "exemplo.xml")
-        session.commit()
+        dict_relatorio = p.interpretar_relatorio()
+        print(dict_relatorio)
+        
         session.close()
 
         
