@@ -2,11 +2,12 @@ import os
 import streamlit as st
 from SSH import ClienteSSH
 from parsers.ParserAtacadao import ParserAtacadaoXML
-from models import Base
+from models import Base, Relatorio
 import sqlalchemy
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy import create_engine
 from datetime import datetime
+import pandas as pd
 
 import logging
 logging.basicConfig(level=logging.DEBUG)
@@ -36,18 +37,25 @@ def atualizar_relatorios(
     c = ClienteSSH(
         ip,
         caminho_pasta,
-        #f"notice_{data_inicio.strftime('%d-%m-%Y')}",
-        "notice_15-11-2023",
+        f"notice_{data_inicio.strftime('%d-%m-%Y')}",
+        #"notice_18-11-2023",
         login,
         senha
         )
     c.conectar_servidor()
-    lista_relatorios = c.obter_nome_relatorio()
-    for nome_relatorio in lista_relatorios:
+    lista_nomes_relatorios = c.obter_nome_relatorio()
+    lista_relatorios_dict = []
+    for nome_relatorio in lista_nomes_relatorios:
         conteudo_relatorio_lst = c.obter_conteudo_relatorio(nome_relatorio)
         conteudo_relatorio = "".join(conteudo_relatorio_lst)
         p = ParserAtacadaoXML(sessao, conteudo_relatorio, nome_relatorio)
-    sessao.commit()
+        d = p.interpretar_relatorio()
+        if d: # se o relatório possui conteúdo, grava, senão, ignora, já está gravado
+            lista_relatorios_dict.append(d)
+    if len(lista_relatorios_dict) > 0:
+        df = pd.DataFrame(lista_relatorios_dict)
+        Relatorio.gravar_banco(session, df)
+
 data_inicio = datetime.now()
 atualizar_relatorios(
         SRV_IP,

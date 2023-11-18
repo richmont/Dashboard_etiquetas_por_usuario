@@ -87,19 +87,27 @@ class Relatorio(Base):
     
     def gravar_banco(session:sqlalchemy.orm.session.Session, df:pd.DataFrame):
         for ind in df.index:
-            matricula = int(df['Código'][ind])
-            nome = df['Nome'][ind]
+            matricula = int(df['matricula'][ind])
+            tipo = df['tipo'][ind]
+            data = df['data'][ind]
+            quantidade = int(df['quantidade'][ind])
+            nome_arquivo = df['nome_arquivo'][ind]
+            cod_produto = int(df['cod_produto'][ind])
 
-            if Usuario.existe(session, matricula):
-                logger.info("Usuário %s já existe no banco", nome)
+            if Relatorio.existe(session, nome_arquivo):
+                logger.info("Relatório %s já existe no banco", nome_arquivo)
             else:
-                model_usuario = Usuario(
-                matricula=matricula,
-                nome=nome
-            )
-                session.add(model_usuario)
-                logger.info("Gravando usuario %s no banco", nome)
-                del model_usuario
+                model_relatorio = Relatorio(
+                    matricula = matricula,
+                    tipo = tipo,
+                    data = data,
+                    quantidade = quantidade,
+                    nome_arquivo = nome_arquivo,
+                    cod_produto = cod_produto
+                )
+                session.add(model_relatorio)
+                logger.info("Gravando relatorio %s no banco", nome_arquivo)
+                del model_relatorio
         session.commit()
 
     
