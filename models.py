@@ -31,7 +31,7 @@ class Usuario(Base):
     
     def existe(session:sqlalchemy.orm.session.Session, matricula:int) -> bool:
         tabela_usuarios = Usuario.__table__
-        result = session.execute(select(tabela_usuarios.c.id).where(tabela_usuario.c.matricula == matricula)).first()
+        result = session.execute(select(tabela_usuarios.c.id).where(tabela_usuarios.c.matricula == matricula)).first()
         if result:
             return True
         else:
