@@ -1,7 +1,10 @@
 from typing import List
 from sqlalchemy import create_engine, Column, Integer, String, ForeignKey, DateTime, select, between, column, table
 from sqlalchemy.orm import relationship, DeclarativeBase, Mapped, mapped_column
-
+import pandas as pd
+import sqlalchemy
+import logging
+logger = logging.getLogger(__name__)
 
 class Base(DeclarativeBase):
     pass
@@ -17,6 +20,44 @@ class Usuario(Base):
     def __repr__(self) -> str:
         return f"Usuário - Matrícula: {self.matricula}, Nome: {self.nome}"
 
+    @classmethod
+    def todos(session:sqlalchemy.orm.session.Session) -> list:
+        r = session.execute(select(Usuario)).scalars().all()
+        return r
+    
+    @classmethod
+    def usuario_por_codigo(session:sqlalchemy.orm.session.Session, matricula:int):
+        r = session.execute(select(Usuario).where(Usuario.matricula == matricula)).first()
+        if r:
+            return r[0]
+    
+    
+    def existe(session, matricula:int) -> bool:
+        result = session.execute(select(Usuario).where(Usuario.matricula == matricula)).first()
+        if result:
+            return True
+        else:
+            return False
+    
+    
+    def gravar_banco(session, df):
+        
+        for ind in df.index:
+            matricula = int(df['Código'][ind])
+            nome = df['Nome'][ind]
+
+            if Usuario.existe(session, matricula):
+                logger.info("Usuário %s já existe no banco", nome)
+            else:
+                model_usuario = Usuario(
+                matricula=matricula,
+                nome=nome
+            )
+                session.add(model_usuario)
+                logger.info("Gravando usuario %s no banco", nome)
+                del model_usuario
+        session.commit()
+    
 class Relatorio(Base):
     __tablename__ = 'relatorio'
 
@@ -34,7 +75,13 @@ class Relatorio(Base):
 
     def __repr__(self) -> str:
         return f"Relatório - Tipo: {self.tipo}, Data: {self.data}, Código de produto: {self.cod_produto}, Matrícula: {self.matricula}"
-        
+    
+    def todos(session:sqlalchemy.orm.session.Session) -> list:
+        tabela_relatorio = Relatorio.__table__
+        r = session.execute(select(tabela_relatorio.c)).scalars().all()
+        return r
+
+    
 class Produto(Base):
     __tablename__ = 'produto'
 
@@ -47,6 +94,17 @@ class Produto(Base):
     def __repr__(self) -> str:
         return f"Produto - Código de produto: {self.cod_produto}, Descrição: {self.descricao_produto}"
 
+    @classmethod
+    def todos(session:sqlalchemy.orm.session.Session) -> list:
+        r = session.execute(select(Produto)).scalars().all()
+        return r
+    
+    @classmethod
+    def produto_por_codigo(session:sqlalchemy.orm.session.Session, cod_produto:int):
+        r = session.execute(select(Produto).where(Produto.cod_produto == cod_produto)).first()
+        if r:
+            return r[0]
+    
 if __name__ == "__main__":
     engine = create_engine('sqlite:///banco.sqlite3')  # Substitua 'seubanco.db' pelo nome do seu banco de dados SQLite
     Base.metadata.create_all(engine)    
