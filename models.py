@@ -1,9 +1,11 @@
 from typing import List
-from sqlalchemy import create_engine, Column, Integer, String, ForeignKey, DateTime, select, between, column, table
+from sqlalchemy import create_engine, Column, Integer, String, ForeignKey, DateTime, select, between, column, table, desc
 from sqlalchemy.orm import relationship, DeclarativeBase, Mapped, mapped_column
 import pandas as pd
 import sqlalchemy
+from sqlalchemy.sql.expression import func
 import logging
+from datetime import datetime
 logger = logging.getLogger(__name__)
 
 class Base(DeclarativeBase):
@@ -110,7 +112,41 @@ class Relatorio(Base):
                 del model_relatorio
         session.commit()
 
-    
+    def ranking_geral_etiquetas_periodo(
+        session:sqlalchemy.orm.session.Session, 
+        data_inicio:datetime, data_fim:datetime
+        ):
+        """Consulta ao banco contando quantas etiquetas foram impressas por cada usuário
+        Consulta SQL:
+            select count(*) as quantidade, usuario.nome 
+            from relatorio 
+            inner join usuario on usuario.matricula = relatorio.matricula 
+            where relatorio.data between data_inicio and data_fim
+            group by usuario.nome order by quantidade 
+            desc
+
+        Args:
+            session (sqlalchemy.orm.session.Session): Sessão conectada ao banco
+            data_inicio (datetime): Data de referência do início do período
+            data_fim (datetime): Data de referência de fim do período
+        """
+        tabela_relatorio = Relatorio.__table__
+        tabela_usuario = Usuario.__table__
+        consulta = select(
+            func.count().label("quantidade"), tabela_usuario.c.nome 
+        ).join(
+            tabela_relatorio, tabela_relatorio.c.matricula == tabela_usuario.c.matricula
+        ).where(
+            between(Relatorio.data, data_inicio, data_fim)
+        ).group_by(
+            tabela_usuario.c.nome
+        ).order_by(desc("quantidade"))
+
+        r = session.execute(consulta)
+        if r:
+            df = pd.DataFrame(r, columns=["quantidade", "usuario"])
+            return df
+        
 class Produto(Base):
     __tablename__ = 'produto'
 
