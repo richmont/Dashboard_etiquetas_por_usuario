@@ -20,8 +20,7 @@ SSH_PWD = os.getenv("SSH_PWD")
 SSH_LOGIN = os.getenv("SSH_LOGIN")
 DATABASE_URL = os.getenv("DATABASE_URL")
 
-#input_data_inicio = st.date_input("Data de início", value=hoje, format="DD/MM/YYYY")
-#data_inicio = datetime.strptime(f"{input_data_inicio} 00:00:00", "%Y-%m-%d %H:%M:%S")
+
 
 
 engine = create_engine(DATABASE_URL)
@@ -73,34 +72,29 @@ def atualizar_produtos(
     p = ParserProduto.ParserProduto(arquivo)
     Produto.gravar_banco(session, p.df)
 
-data_inicio = datetime(2023,11,17)
-"""
-atualizar_relatorios(
-        SRV_IP,
-        SRV_RELATORIO_PASTA,
-        data_inicio,
-        SSH_LOGIN,
-        SSH_PWD,
-        session
+hoje = datetime.now()
+st.set_page_config(layout="wide")
+col1, col2 = st.columns(2)
+with col1:
+    input_data_inicio = st.date_input("Data de início", value=hoje, format="DD/MM/YYYY")
+    data_inicio = datetime.strptime(f"{input_data_inicio} 00:00:00", "%Y-%m-%d %H:%M:%S")
+with col2:
+    input_data_fim = st.date_input("Data de fim", value=hoje, format="DD/MM/YYYY")
+    data_fim = datetime.strptime(f"{input_data_fim} 23:59:59", "%Y-%m-%d %H:%M:%S")
+
+df_ranking_tipos = Relatorio.ranking_tipos_etiquetas_periodo(
+    session, 
+    data_inicio=data_inicio, 
+    data_fim=data_fim
 )
+st.title("Geral de etiquetas")
+if df_ranking_tipos is None:
+    "Período sem dados das etiquetas, atualize e tente novamente"
+else:
+    st.dataframe(
+        df_ranking_tipos,
+        use_container_width=True, 
+        hide_index=True,
+        height=1500
+        )
 
-with open("usuarios.csv", "r", encoding="cp1252") as arquivo:
-        
-        atualizar_operadores(session, arquivo)
-
-with open("produtos.csv", "r", encoding="cp1252") as arquivo:
-    
-    #engine = create_engine('sqlite:///banco.sqlite3')
-    #Session = sessionmaker(bind=engine)
-    #session = Session()
-    #Base.metadata.create_all(engine)
-    p = atualizar_produtos(session, arquivo)
-    Produto.gravar_banco(session, p.df)
-"""
-r = Relatorio.ranking_geral_etiquetas_periodo(
-        session, 
-        data_inicio=datetime(2023,11,18,00,00,00), 
-        data_fim=datetime(2023,11,18,23,59,59)
-    )
-print(r)
-session.close()

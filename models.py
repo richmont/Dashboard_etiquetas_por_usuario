@@ -1,7 +1,8 @@
 from typing import List
-from sqlalchemy import create_engine, Column, Integer, String, ForeignKey, DateTime, select, between, column, table, desc
+from sqlalchemy import create_engine, Column, Integer, String, ForeignKey, DateTime, select, between, column, table, desc, case
 from sqlalchemy.orm import relationship, DeclarativeBase, Mapped, mapped_column
 import pandas as pd
+
 import sqlalchemy
 from sqlalchemy.sql.expression import func
 import logging
@@ -146,6 +147,51 @@ class Relatorio(Base):
         if r:
             df = pd.DataFrame(r, columns=["quantidade", "usuario"])
             return df
+
+    def ranking_tipos_etiquetas_periodo(
+        session:sqlalchemy.orm.session.Session, 
+        data_inicio:datetime, data_fim:datetime
+        ):
+        """Consulta ao banco contando quantas etiquetas foram impressas por cada usuário
+        Consulta SQL:
+            select 
+            count(CASE WHEN relatorio.tipo = "C" THEN 1 ELSE NULL end) as quantidade_etiqueta_c, 
+            count(CASE WHEN relatorio.tipo = "X" THEN 1 ELSE NULL end) as quantidade_etiqueta_x, 
+            count(*) as total_etiquetas,
+            usuario.nome 
+            from relatorio 
+            inner join usuario on usuario.matricula = relatorio.matricula 
+            group by usuario.nome order by total_etiquetas 
+            desc
+
+        Args:
+            session (sqlalchemy.orm.session.Session): Sessão conectada ao banco
+            data_inicio (datetime): Data de referência do início do período
+            data_fim (datetime): Data de referência de fim do período
+        """
+        tabela_relatorio = Relatorio.__table__
+        tabela_usuario = Usuario.__table__
+
+        consulta = select(
+            func.count().label("total_etiquetas"), 
+            func.count(case({"C": 1}, value=tabela_relatorio.c.tipo), else_=None).label("etiquetas_c"),
+            func.count(case({"X": 1}, value=tabela_relatorio.c.tipo), else_=None).label("etiquetas_x"),
+            func.count(case({"papeleta": 1}, value=tabela_relatorio.c.tipo), else_=None).label("papeletas"),
+            tabela_usuario.c.nome 
+        ).join(
+            tabela_relatorio, tabela_relatorio.c.matricula == tabela_usuario.c.matricula
+        ).where(
+            between(Relatorio.data, data_inicio, data_fim)
+        ).group_by(
+            tabela_usuario.c.nome
+        ).order_by(desc("total_etiquetas"))
+
+        r = session.execute(consulta)
+        resultado = r.all()
+        if len(resultado) > 0:
+            df = pd.DataFrame(resultado)
+            return df
+
     
     def ranking_etiqueta_X_periodo(
         session:sqlalchemy.orm.session.Session, 
