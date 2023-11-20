@@ -20,9 +20,6 @@ SSH_PWD = os.getenv("SSH_PWD")
 SSH_LOGIN = os.getenv("SSH_LOGIN")
 DATABASE_URL = os.getenv("DATABASE_URL")
 
-
-
-
 engine = create_engine(DATABASE_URL)
 Session = sessionmaker(engine)
 session = Session()
@@ -40,7 +37,6 @@ def atualizar_relatorios(
         ip,
         caminho_pasta,
         f"notice_{data_inicio.strftime('%d-%m-%Y')}",
-        #"notice_18-11-2023",
         login,
         senha
         )
@@ -95,6 +91,6 @@ else:
         df_ranking_tipos,
         use_container_width=True, 
         hide_index=True,
-        height=1500
+        height=1000
         )
 
