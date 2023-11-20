@@ -146,6 +146,93 @@ class Relatorio(Base):
         if r:
             df = pd.DataFrame(r, columns=["quantidade", "usuario"])
             return df
+    
+    def ranking_etiqueta_X_periodo(
+        session:sqlalchemy.orm.session.Session, 
+        data_inicio:datetime, data_fim:datetime
+        ):
+        """Consulta ao banco contando quantas etiquetas do tipo X foram impressas por cada usuário
+        Args:
+            session (sqlalchemy.orm.session.Session): Sessão conectada ao banco
+            data_inicio (datetime): Data de referência do início do período
+            data_fim (datetime): Data de referência de fim do período
+        """
+        tabela_relatorio = Relatorio.__table__
+        tabela_usuario = Usuario.__table__
+        consulta = select(
+            func.count().label("quantidade"), tabela_usuario.c.nome 
+        ).join(
+            tabela_relatorio, tabela_relatorio.c.matricula == tabela_usuario.c.matricula
+        ).where(
+            between(Relatorio.data, data_inicio, data_fim) 
+        ).where(
+            tabela_relatorio.c.tipo == "X"    
+        ).group_by(
+            tabela_usuario.c.nome
+        ).order_by(desc("quantidade"))
+
+        r = session.execute(consulta)
+        if r:
+            df = pd.DataFrame(r, columns=["quantidade_etiquetas_x", "usuario"])
+            return df
+    
+    def ranking_etiqueta_C_periodo(
+        session:sqlalchemy.orm.session.Session, 
+        data_inicio:datetime, data_fim:datetime
+        ):
+        """Consulta ao banco contando quantas etiquetas do tipo C foram impressas por cada usuário
+        Args:
+            session (sqlalchemy.orm.session.Session): Sessão conectada ao banco
+            data_inicio (datetime): Data de referência do início do período
+            data_fim (datetime): Data de referência de fim do período
+        """
+        tabela_relatorio = Relatorio.__table__
+        tabela_usuario = Usuario.__table__
+        consulta = select(
+            func.count().label("quantidade"), tabela_usuario.c.nome 
+        ).join(
+            tabela_relatorio, tabela_relatorio.c.matricula == tabela_usuario.c.matricula
+        ).where(
+            between(Relatorio.data, data_inicio, data_fim) 
+        ).where(
+            tabela_relatorio.c.tipo == "C"    
+        ).group_by(
+            tabela_usuario.c.nome
+        ).order_by(desc("quantidade"))
+
+        r = session.execute(consulta)
+        if r:
+            df = pd.DataFrame(r, columns=["quantidade_etiquetas_c", "usuario"])
+            return df
+    
+    def ranking_papeleta_periodo(
+        session:sqlalchemy.orm.session.Session, 
+        data_inicio:datetime, data_fim:datetime
+        ):
+        """Consulta ao banco contando quantas etiquetas do tipo papeleta foram impressas por cada usuário
+        Args:
+            session (sqlalchemy.orm.session.Session): Sessão conectada ao banco
+            data_inicio (datetime): Data de referência do início do período
+            data_fim (datetime): Data de referência de fim do período
+        """
+        tabela_relatorio = Relatorio.__table__
+        tabela_usuario = Usuario.__table__
+        consulta = select(
+            func.count().label("quantidade"), tabela_usuario.c.nome 
+        ).join(
+            tabela_relatorio, tabela_relatorio.c.matricula == tabela_usuario.c.matricula
+        ).where(
+            between(Relatorio.data, data_inicio, data_fim) 
+        ).where(
+            tabela_relatorio.c.tipo == "papeleta"    
+        ).group_by(
+            tabela_usuario.c.nome
+        ).order_by(desc("quantidade"))
+
+        r = session.execute(consulta)
+        if r:
+            df = pd.DataFrame(r.all(), columns=["quantidade_papeleta", "usuario"])
+            return df
         
 class Produto(Base):
     __tablename__ = 'produto'

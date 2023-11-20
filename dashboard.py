@@ -10,6 +10,7 @@ from datetime import datetime
 import pandas as pd
 import io
 import logging
+from datetime import datetime
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
@@ -17,11 +18,13 @@ SRV_IP = os.getenv("SRV_IP")
 SRV_RELATORIO_PASTA = os.getenv("SRV_RELATORIO_PASTA")
 SSH_PWD = os.getenv("SSH_PWD")
 SSH_LOGIN = os.getenv("SSH_LOGIN")
+DATABASE_URL = os.getenv("DATABASE_URL")
 
 #input_data_inicio = st.date_input("Data de início", value=hoje, format="DD/MM/YYYY")
 #data_inicio = datetime.strptime(f"{input_data_inicio} 00:00:00", "%Y-%m-%d %H:%M:%S")
 
-engine = create_engine('sqlite:///banco.sqlite3')
+
+engine = create_engine(DATABASE_URL)
 Session = sessionmaker(engine)
 session = Session()
 Base.metadata.create_all(engine)
@@ -70,7 +73,7 @@ def atualizar_produtos(
     p = ParserProduto.ParserProduto(arquivo)
     Produto.gravar_banco(session, p.df)
 
-data_inicio = datetime.now()
+data_inicio = datetime(2023,11,17)
 """
 atualizar_relatorios(
         SRV_IP,
@@ -82,18 +85,22 @@ atualizar_relatorios(
 )
 
 with open("usuarios.csv", "r", encoding="cp1252") as arquivo:
-        engine = create_engine('sqlite:///banco.sqlite3')
-        Session = sessionmaker(bind=engine)
-        session = Session()
-        Base.metadata.create_all(engine)    
+        
         atualizar_operadores(session, arquivo)
 
 with open("produtos.csv", "r", encoding="cp1252") as arquivo:
     
-    engine = create_engine('sqlite:///banco.sqlite3')
-    Session = sessionmaker(bind=engine)
-    session = Session()
-    Base.metadata.create_all(engine)
+    #engine = create_engine('sqlite:///banco.sqlite3')
+    #Session = sessionmaker(bind=engine)
+    #session = Session()
+    #Base.metadata.create_all(engine)
     p = atualizar_produtos(session, arquivo)
     Produto.gravar_banco(session, p.df)
 """
+r = Relatorio.ranking_geral_etiquetas_periodo(
+        session, 
+        data_inicio=datetime(2023,11,18,00,00,00), 
+        data_fim=datetime(2023,11,18,23,59,59)
+    )
+print(r)
+session.close()
