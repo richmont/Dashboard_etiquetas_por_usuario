@@ -28,7 +28,7 @@ Base.metadata.create_all(engine)
 def atualizar_relatorios(
     ip:str, 
     caminho_pasta:str, 
-    data_inicio:datetime, 
+    data:datetime, 
     login:str, 
     senha:str, 
     sessao:sqlalchemy.orm.session.Session
@@ -36,7 +36,7 @@ def atualizar_relatorios(
     c = ClienteSSH(
         ip,
         caminho_pasta,
-        f"notice_{data_inicio.strftime('%d-%m-%Y')}",
+        f"notice_{data.strftime('%d-%m-%Y')}",
         login,
         senha
         )
@@ -54,18 +54,15 @@ def atualizar_relatorios(
         df = pd.DataFrame(lista_relatorios_dict)
         Relatorio.gravar_banco(session, df)
 
-def atualizar_operadores(
+def atualizar_usuarios(
     session:sqlalchemy.orm.session.Session, 
-    csv_operadores:io.StringIO
+    csv_usuarios:io.StringIO
     ):
-    p = ParserUsuarios.ParserUsuarios(arquivo)
+    p = ParserUsuarios.ParserUsuarios(csv_usarios)
     Usuario.gravar_banco(session, p.df)
 
-def atualizar_produtos(
-    session:sqlalchemy.orm.session.Session, 
-    csv_produtos:io.StringIO
-):
-    p = ParserProduto.ParserProduto(arquivo)
+def atualizar_produtos(session:sqlalchemy.orm.session.Session, csv_produtos:io.StringIO):
+    p = ParserProduto.ParserProduto(csv_produtos)
     Produto.gravar_banco(session, p.df)
 
 hoje = datetime.now()
@@ -83,6 +80,28 @@ df_ranking_tipos = Relatorio.ranking_tipos_etiquetas_periodo(
     data_inicio=data_inicio, 
     data_fim=data_fim
 )
+
+lateral_atualizar_banco = st.sidebar
+with lateral_atualizar_banco:
+    csv_usarios = st.file_uploader("Atualizar relação de usarios", type=["csv"])
+    if csv_usarios is not None:
+        st.button("Atualizar usarios", on_click=atualizar_usuarios, args=(session, csv_usarios))
+        
+    csv_produtos = st.file_uploader("Atualizar relação de produtos", type=["csv"])
+    if csv_produtos is not None:
+        st.button("Atualizar produtos", on_click=atualizar_produtos, args=(session, csv_produtos))
+
+    input_data_relatorios = st.date_input("Data para atualizar relatórios", value=hoje, format="DD/MM/YYYY")
+    "Atenção: A atualização dos relatórios pode levar até 5 minutos"
+    st.button("Atualizar relatórios", on_click=atualizar_relatorios, args=(
+        SRV_IP,
+        SRV_RELATORIO_PASTA, 
+        input_data_relatorios,
+        SSH_LOGIN, 
+        SSH_PWD,
+        session
+    ))
+
 st.title("Geral de etiquetas")
 if df_ranking_tipos is None:
     "Período sem dados das etiquetas, atualize e tente novamente"
