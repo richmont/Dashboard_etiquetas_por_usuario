@@ -15,7 +15,8 @@ class ParserUsuarios():
         self.df = pd.read_csv(
             arquivo, 
             sep=";", 
-            usecols=["Nome", "Username", "Código"]
+            usecols=["Nome", "Username", "Código"],
+            encoding='cp1252'
             )
         # elimina linhas sem código ou sem nome
         self.df = self.df.dropna()
