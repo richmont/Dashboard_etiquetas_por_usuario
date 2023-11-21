@@ -1,0 +1,11 @@
+[Unit]
+Description=Dashboard feita com streamlit e python para controle de vendas no pix
+[Service]
+After=multi-user.target[Service]
+Type=simple
+Restart=always
+WorkingDirectory=/opt/dashboard_etiquetas/Dashboard_etiquetas_por_usuario/
+ExecStart=/opt/dashboard_etiquetas/bin/streamlit run /opt/dashboard_etiquetas/Dashboard_etiquetas_por_usuario/dashboard.py
+EnvironmentFile=/opt/dashboard_etiquetas/dashboard_etiquetas.conf
+[Install]
+WantedBy=multi-user.target
