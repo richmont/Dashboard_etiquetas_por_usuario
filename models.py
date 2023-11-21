@@ -100,17 +100,22 @@ class Relatorio(Base):
             if Relatorio.existe(session, nome_arquivo):
                 logger.info("Relatório %s já existe no banco", nome_arquivo)
             else:
-                model_relatorio = Relatorio(
-                    matricula = matricula,
-                    tipo = tipo,
-                    data = data,
-                    quantidade = quantidade,
-                    nome_arquivo = nome_arquivo,
-                    cod_produto = cod_produto
-                )
-                session.add(model_relatorio)
-                logger.info("Gravando relatorio %s no banco", nome_arquivo)
-                del model_relatorio
+                if not Produto.existe(session, cod_produto):
+                    raise Relatorio.exc.ProdutoNaoExiste(f"Produto {cod_produto} não existe no banco, peça ao CPD para atualizar a lista de produtos")
+                elif not Usuario.existe(session, matricula):
+                    raise Relatorio.exc.UsuarioNaoExiste(f"Usuário de matrícula {matricula} não existe no banco de dados, peça ao CPD para atualizar a lista de usuários")
+                else:
+                    model_relatorio = Relatorio(
+                        matricula = matricula,
+                        tipo = tipo,
+                        data = data,
+                        quantidade = quantidade,
+                        nome_arquivo = nome_arquivo,
+                        cod_produto = cod_produto
+                    )
+                    session.add(model_relatorio)
+                    logger.info("Gravando relatorio %s no banco", nome_arquivo)
+                    del model_relatorio
         session.commit()
 
     def ranking_geral_etiquetas_periodo(
@@ -280,6 +285,11 @@ class Relatorio(Base):
             df = pd.DataFrame(r.all(), columns=["quantidade_papeleta", "usuario"])
             return df
         
+    class exc():
+        class ProdutoNaoExiste(Exception):
+            pass
+        class UsuarioNaoExiste(Exception):
+            pass
 class Produto(Base):
     __tablename__ = 'produto'
 
