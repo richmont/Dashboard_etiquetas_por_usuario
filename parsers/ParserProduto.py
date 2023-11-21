@@ -15,7 +15,8 @@ class ParserProduto():
         self.df = pd.read_csv(
             arquivo, 
             sep=";", 
-            usecols=["Código", "Nome"]
+            usecols=["Código", "Nome"],
+            encoding='cp1252'
             )
         # elimina linhas sem código ou sem nome
         self.df = self.df.dropna()
